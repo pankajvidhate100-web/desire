@@ -1,0 +1,1 @@
+{"customer":{"name":"AdminMailTest","email":"test@example.com","phone":"0000000000","address":"123 Main","city":"Nagpur","state":"MH","zip":"440001"},"items":[{"sku":"dark","name":"Dark Delight","price":129,"qty":2}],"total":258,"payment":{"method":"razorpay","id":"TESTRAZOR123"}}

@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Desire.co</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cocoa: #1a0a04; --espresso: #2d1208;
+            --truffle: #5c2e10; --caramel: #c8892a;
+            --gold: #e8b84b; --cream: #f9f2e7; --white: #fffdf9;
+            --red: #c0392b; --green: #7ec896;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--cocoa); color: var(--cream);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            min-height: 100vh; cursor: none; overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 999; opacity: 0.4;
+        }
+        .cursor { width:12px;height:12px;background:var(--gold);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9999;mix-blend-mode:difference;transition:transform 0.15s; }
+        .cursor-ring { width:40px;height:40px;border:1px solid var(--gold);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:9998;opacity:0.5;transition:all 0.3s; }
+
+        /* ═══════════════════════════════════════
+           LOGIN SCREEN
+        ═══════════════════════════════════════ */
+        #login-screen {
+            position: fixed; inset: 0; z-index: 800;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--cocoa);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        #login-screen.hide {
+            opacity: 0; transform: scale(1.05);
+            pointer-events: none;
+        }
+
+        /* animated bg circles */
+        .login-bg {
+            position: absolute; inset: 0; overflow: hidden;
+        }
+        .login-bg-circle {
+            position: absolute; border-radius: 50%;
+            border: 1px solid rgba(200,137,42,0.08);
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            animation: spinSlow linear infinite;
+        }
+        .login-bg-circle:nth-child(1) { width: 600px; height: 600px; animation-duration: 80s; }
+        .login-bg-circle:nth-child(2) { width: 450px; height: 450px; animation-duration: 55s; animation-direction: reverse; border-color: rgba(200,137,42,0.12); }
+        .login-bg-circle:nth-child(3) { width: 280px; height: 280px; animation-duration: 35s; border-color: rgba(200,137,42,0.18); }
+        @keyframes spinSlow { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+        .login-glow {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(92,46,16,0.6) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .login-card {
+            position: relative; z-index: 2;
+            width: 100%; max-width: 420px;
+            padding: 2.2rem 2.5rem;
+            background: linear-gradient(160deg, rgba(28, 12, 5, 0.95) 0%, rgba(25, 10, 5, 0.9) 100%);
+            border: 1px solid rgba(232,184,75,0.35);
+            border-radius: 14px;
+            box-shadow: 0 20px 45px rgba(0,0,0,0.45), 0 0 0 1px rgba(232,184,75,0.1);
+            animation: cardIn 0.5s ease;
+            backdrop-filter: blur(4px);
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem; color: #f4df9f;
+            text-align: center; margin-bottom: 0.15rem;
+            letter-spacing: 0.06em;
+        }
+        .login-logo span { font-style: italic; color:#f7e5b8; }
+
+        .login-subtitle {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.62rem; letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: rgba(249,242,231,0.45);
+            text-align: center;
+            margin-bottom: 1.6rem;
+        }
+
+        .login-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(200,137,42,0.4), transparent);
+            margin-bottom: 2.5rem;
+        }
+
+        .login-field {
+            display: flex; flex-direction: column; gap: 0.5rem;
+            margin-bottom: 1.2rem;
+        }
+        .login-field label {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.62rem; letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: rgba(249,242,231,0.4);
+        }
+        .login-input-wrap {
+            position: relative;
+        }
+        .login-field input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(232,184,75,0.28);
+            color: #f8f3e8;
+            padding: 0.85rem 0.95rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem; font-weight: 300;
+            outline: none;
+            border-radius: 6px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .login-field input:focus {
+            border-color: #f3d27f;
+            background: rgba(255,255,255,0.12);
+        }
+        .login-field input.error {
+            border-color: var(--red);
+            background: rgba(192,57,43,0.05);
+            animation: shake 0.4s ease;
+        }
+        @keyframes shake {
+            0%,100%{transform:translateX(0)}
+            20%{transform:translateX(-8px)}
+            40%{transform:translateX(8px)}
+            60%{transform:translateX(-5px)}
+            80%{transform:translateX(5px)}
+        }
+
+        /* eye toggle */
+        .eye-toggle {
+            position: absolute; right: 0.9rem; top: 50%;
+            transform: translateY(-50%);
+            background: none; border: none;
+            color: rgba(249,242,231,0.3);
+            cursor: none; font-size: 1rem;
+            transition: color 0.2s; padding: 0;
+            line-height: 1;
+        }
+        .eye-toggle:hover { color: var(--gold); }
+
+        .login-error {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.65rem; letter-spacing: 0.1em;
+            color: var(--red);
+            min-height: 1.2rem;
+            margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        /* lockout bar */
+        .lockout-bar {
+            background: rgba(192,57,43,0.15);
+            border: 1px solid rgba(192,57,43,0.3);
+            padding: 0.8rem 1rem;
+            margin-bottom: 1.2rem;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.62rem; letter-spacing: 0.1em;
+            color: #e57373;
+            display: none;
+        }
+        .lockout-bar.show { display: block; }
+
+        .attempt-dots {
+            display: flex; gap: 0.4rem; margin-bottom: 1.2rem;
+        }
+        .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            border: 1px solid rgba(200,137,42,0.3);
+            transition: all 0.3s;
+        }
+        .dot.used { background: var(--red); border-color: var(--red); }
+        .dot.warn  { background: #ff9a5c; border-color: #ff9a5c; }
+
+        .login-btn {
+            width: 100%;
+            background: var(--gold); color: var(--cocoa);
+            border: none; padding: 1rem;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.78rem; letter-spacing: 0.2em;
+            text-transform: uppercase; cursor: none;
+            position: relative; overflow: hidden;
+            transition: background 0.3s;
+            margin-bottom: 1.5rem;
+        }
+        .login-btn::after {
+            content: ''; position: absolute; inset: 0;
+            background: rgba(255,255,255,0.2);
+            transform: translateX(-100%);
+            transition: transform 0.4s ease;
+        }
+        .login-btn:hover:not(:disabled)::after { transform: translateX(0); }
+        .login-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .login-btn.loading { pointer-events: none; }
+        .login-btn.loading::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: shimmer 1s infinite;
+        }
+        .return-shop {
+            display: inline-block;
+            margin-top: 0.45rem;
+            width: 100%; text-align: center;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.68rem;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #f6e7c4;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.04);
+            border-radius: 4px;
+            padding: 0.55rem 0.2rem;
+            transition: all 0.25s ease;
+        }
+        .return-shop:hover {
+            background: rgba(255,255,255,0.14);
+            border-color: rgba(232,184,75,0.6);
+            color: #fff;
+        }
+        @keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+
+        .login-footer {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.58rem; letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(249,242,231,0.2);
+            text-align: center;
+            display: flex; align-items: center; gap: 0.5rem; justify-content: center;
+        }
+
+        .session-timer {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.6rem; letter-spacing: 0.15em;
+            color: rgba(249,242,231,0.3);
+            display: flex; align-items: center; gap: 0.4rem;
+        }
+        .session-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        /* ═══════════════════════════════════════
+           DASHBOARD
+        ═══════════════════════════════════════ */
+        #dashboard { display: none; }
+        #dashboard.show { display: block; }
+
+        header {
+            padding: 1.5rem 3rem;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid rgba(200,137,42,0.15);
+        }
+        .logo { font-family:'Playfair Display',serif; font-size:1.6rem; color:var(--gold); text-decoration:none; }
+        .logo span { font-style:italic; }
+        .header-right { display: flex; align-items: center; gap: 2rem; }
+        .session-info {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.62rem; letter-spacing: 0.12em;
+            color: rgba(249,242,231,0.4);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .logout-btn {
+            background: none; border: 1px solid rgba(200,137,42,0.3);
+            color: rgba(249,242,231,0.6);
+            padding: 0.45rem 1rem;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.62rem; letter-spacing: 0.15em;
+            text-transform: uppercase; cursor: none;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { border-color: var(--red); color: #e57373; }
+        nav a { font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.2em; text-transform:uppercase; color:rgba(249,242,231,0.6); text-decoration:none; transition:color 0.3s; }
+        nav a:hover { color:var(--gold); }
+
+        .page-hero { padding:3.5rem 3rem 2rem; border-bottom:1px solid rgba(200,137,42,0.1); position:relative; overflow:hidden; }
+        .page-hero::after { content:'ADMIN'; position:absolute; right:3rem; top:50%; transform:translateY(-50%); font-family:'Playfair Display',serif; font-size:clamp(4rem,12vw,9rem); font-weight:700; color:rgba(200,137,42,0.04); letter-spacing:-0.03em; pointer-events:none; }
+        .eyebrow { font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.35em; text-transform:uppercase; color:var(--gold); margin-bottom:0.8rem; display:flex; align-items:center; gap:1rem; }
+        .eyebrow::before { content:''; width:40px; height:1px; background:var(--gold); }
+        .page-hero h1 { font-family:'Playfair Display',serif; font-size:clamp(2rem,4vw,3.2rem); font-weight:400; }
+        .page-hero h1 em { font-style:italic; color:var(--gold); }
+
+        .admin-layout { max-width:1100px; margin:0 auto; padding:3rem; }
+
+        /* stats */
+        .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin-bottom:3rem; background:rgba(200,137,42,0.15); }
+        .stat-card { background:var(--espresso); padding:1.8rem; transition: background 0.2s; }
+        .stat-card:hover { background: rgba(45,18,8,0.8); }
+        .stat-card-label { font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.3em; text-transform:uppercase; color:rgba(249,242,231,0.4); margin-bottom:0.5rem; }
+        .stat-card-val { font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:400; color:var(--gold); }
+        .stat-card-val.revenue { color: var(--green); }
+
+        /* table */
+        .table-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
+        .table-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:400; }
+        .btn-reset { background:none; border:1px solid rgba(200,137,42,0.35); color:var(--gold); padding:0.6rem 1.4rem; font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; text-transform:uppercase; cursor:none; transition:all 0.3s; }
+        .btn-reset:hover { background:rgba(200,137,42,0.1); }
+        .inv-table { width:100%; border-collapse:collapse; }
+        .inv-table thead tr { border-bottom:1px solid rgba(200,137,42,0.25); }
+        .inv-table th { font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.25em; text-transform:uppercase; color:rgba(249,242,231,0.4); padding:0.8rem 1rem; text-align:left; }
+        .inv-table tbody tr { border-bottom:1px solid rgba(200,137,42,0.08); transition:background 0.2s; }
+        .inv-table tbody tr:hover { background:rgba(200,137,42,0.04); }
+        .inv-table td { padding:1.2rem 1rem; vertical-align:middle; }
+        .sku-badge { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.1em; background:rgba(200,137,42,0.12); color:var(--gold); padding:0.2rem 0.6rem; }
+        .flavor-name { font-family:'Playfair Display',serif; font-size:1.15rem; font-weight:400; }
+        .price-val { font-family:'DM Mono',monospace; font-size:0.85rem; color:var(--gold); }
+        .stock-input { background:rgba(255,255,255,0.04); border:1px solid rgba(200,137,42,0.25); color:var(--cream); padding:0.5rem 0.8rem; width:90px; font-family:'DM Mono',monospace; font-size:0.85rem; outline:none; transition:border-color 0.3s; }
+        .stock-input:focus { border-color:var(--gold); }
+        .stock-low { color:#ff9a5c; }
+        .stock-ok { color:var(--green); }
+        .stock-out { color:#ff6b6b; }
+        .btn-update { background:var(--gold); color:var(--cocoa); border:none; padding:0.5rem 1.2rem; font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; text-transform:uppercase; cursor:none; transition:background 0.3s; }
+        .btn-update:hover { background:#d4a438; }
+
+        /* orders */
+        .orders-section { margin-top:3rem; }
+        .order-row { background:var(--espresso); border:1px solid rgba(200,137,42,0.1); padding:1.5rem; margin-bottom:1px; display:grid; grid-template-columns:auto 1fr auto auto; gap:1.5rem; align-items:start; animation:fadeIn 0.4s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+        .order-id { font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--gold); }
+        .order-date { font-family:'DM Mono',monospace; font-size:0.62rem; color:rgba(249,242,231,0.35); margin-top:0.2rem; }
+        .order-customer { font-family:'Playfair Display',serif; font-size:1.05rem; margin-bottom:0.3rem; }
+        .order-items-list { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.05em; color:rgba(249,242,231,0.5); }
+        .order-total-badge { font-family:'Playfair Display',serif; font-size:1.4rem; color:var(--gold); white-space:nowrap; }
+        .order-details { margin-top:0.8rem; border-top:1px solid rgba(200,137,42,0.08); padding-top:0.8rem; display:grid; gap:0.4rem; }
+        .order-details div { font-family:'DM Mono',monospace; font-size:0.64rem; color:rgba(249,242,231,0.65); }
+        .order-details strong { color:#fff; }
+        .order-items-table { width:100%; border-collapse:collapse; margin-top:0.35rem; }
+        .order-items-table th, .order-items-table td { border-bottom:1px solid rgba(200,137,42,0.12); padding:0.2rem 0.2rem; text-align:left; font-size:0.62rem; color:rgba(249,242,231,0.7); }
+        .order-items-table th { color:rgba(249,242,231,0.45); letter-spacing:0.08em; text-transform:uppercase; }
+        .payment-tag { font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.1em; text-transform:uppercase; padding:0.2rem 0.6rem; white-space:nowrap; align-self:start; }
+        .payment-tag.razorpay { background:rgba(0,100,200,0.15); color:#7eb3ff; border:1px solid rgba(0,100,200,0.2); }
+        .payment-tag.upi { background:rgba(126,200,150,0.15); color:var(--green); border:1px solid rgba(126,200,150,0.25); }
+        .payment-tag.other { background:rgba(200,137,42,0.1); color:var(--gold); border:1px solid rgba(200,137,42,0.2); }
+        .no-orders { font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.15em; text-transform:uppercase; color:rgba(249,242,231,0.25); text-align:center; padding:3rem; }
+
+        .toast { position:fixed; bottom:2rem; left:50%; transform:translateX(-50%) translateY(100px); background:var(--gold); color:var(--cocoa); padding:0.8rem 2rem; font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.15em; text-transform:uppercase; z-index:9999; transition:transform 0.4s cubic-bezier(0.4,0,0.2,1); white-space:nowrap; pointer-events:none; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        .toast.error { background:var(--red); color:#fff; }
+
+        @media(max-width:768px) {
+            header { padding:1.2rem 1.5rem; }
+            .page-hero { padding:2.5rem 1.5rem 2rem; }
+            .admin-layout { padding:2rem 1.5rem; }
+            .stats-row { grid-template-columns:1fr 1fr; }
+            .order-row { grid-template-columns:1fr; }
+            .login-card { padding:2rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <!-- ══════════════════════════════════
+         LOGIN SCREEN
+    ══════════════════════════════════ -->
+    <div id="login-screen">
+        <div class="login-bg">
+            <div class="login-bg-circle"></div>
+            <div class="login-bg-circle"></div>
+            <div class="login-bg-circle"></div>
+        </div>
+        <div class="login-glow"></div>
+
+        <div class="login-card">
+            <div class="login-logo"><span>Desire</span>.co</div>
+            <div class="login-subtitle">Admin Access Only</div>
+            <div class="login-divider"></div>
+
+            <div class="lockout-bar" id="lockoutBar">
+                🔒 Too many failed attempts. Please wait <span id="lockoutTimer">30</span>s.
+            </div>
+
+            <div class="login-field">
+                <label>Username</label>
+                <div class="login-input-wrap">
+                    <input type="text" id="login-user" placeholder="Enter username" autocomplete="username" spellcheck="false">
+                </div>
+            </div>
+
+            <div class="login-field">
+                <label>Password</label>
+                <div class="login-input-wrap">
+                    <input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password">
+                    <button class="eye-toggle" id="eyeToggle" type="button" tabindex="-1" title="Show/hide password">👁</button>
+                </div>
+            </div>
+
+            <div class="login-error" id="loginError"></div>
+
+            <div class="attempt-dots" id="attemptDots">
+                <div class="dot" id="d1"></div>
+                <div class="dot" id="d2"></div>
+                <div class="dot" id="d3"></div>
+                <div class="dot" id="d4"></div>
+                <div class="dot" id="d5"></div>
+            </div>
+
+            <button class="login-btn" id="loginBtn" type="button">
+                Sign In to Dashboard
+            </button>
+            <a href="index.html" class="return-shop">← Return to Shop</a>
+            <div class="login-footer">🔒 &nbsp;Secure Admin Portal &nbsp;·&nbsp; Desire.co</div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         DASHBOARD
+    ══════════════════════════════════ -->
+    <div id="dashboard">
+        <header>
+            <a href="index.html" class="logo"><span>Desire</span>.co</a>
+            <div class="header-right">
+                <div class="session-info">
+                    <span class="session-dot"></span>
+                    <span id="sessionTimerDisplay">Session: --:--</span>
+                </div>
+                <button class="logout-btn" id="logoutBtn">Sign Out</button>
+                <nav></nav>
+            </div>
+        </header>
+
+        <div class="page-hero">
+            <p class="eyebrow">Dashboard</p>
+            <h1>Inventory <em>&amp; Orders</em></h1>
+        </div>
+
+        <div class="admin-layout">
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-card-label">Total Flavours</div><div class="stat-card-val" id="statFlavours">—</div></div>
+                <div class="stat-card"><div class="stat-card-label">Total Stock</div><div class="stat-card-val" id="statStock">—</div></div>
+                <div class="stat-card"><div class="stat-card-label">Orders Received</div><div class="stat-card-val" id="statOrders">—</div></div>
+                <div class="stat-card"><div class="stat-card-label">Total Revenue</div><div class="stat-card-val revenue" id="statRevenue">—</div></div>
+            </div>
+
+            <div class="table-header">
+                <div class="table-title">Inventory</div>
+                <button class="btn-reset" id="reset-inventory">Reset Defaults</button>
+            </div>
+            <table class="inv-table">
+                <thead>
+                    <tr>
+                        <th>SKU</th><th>Flavour</th><th>Price (₹)</th>
+                        <th>Stock</th><th>Status</th><th></th>
+                    </tr>
+                </thead>
+                <tbody id="inv-tbody"></tbody>
+            </table>
+
+            <div class="orders-section">
+                <div class="table-header" style="margin-top:2rem; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+                    <div class="table-title">Recent Orders</div>
+                    <div style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.15em;color:rgba(249,242,231,0.3);">Latest 20</div>
+                    <button class="btn-reset" id="reset-orders" style="font-size:0.62rem; padding:0.45rem 0.9rem;">Reset Orders</button>
+                </div>
+                <div id="orders-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ── Cursor ──
+        const cursor = document.getElementById('cursor');
+        const ring   = document.getElementById('cursorRing');
+        document.addEventListener('mousemove', e => {
+            cursor.style.left = e.clientX - 6  + 'px';
+            cursor.style.top  = e.clientY - 6  + 'px';
+            ring.style.left   = e.clientX - 20 + 'px';
+            ring.style.top    = e.clientY - 20 + 'px';
+        });
+        document.querySelectorAll('a,button,input').forEach(el => {
+            el.addEventListener('mouseenter', () => { cursor.style.transform='scale(2)'; ring.style.transform='scale(1.4)'; });
+            el.addEventListener('mouseleave', () => { cursor.style.transform=''; ring.style.transform=''; });
+        });
+
+        // ══════════════════════════════════════════
+        //  AUTH CONFIG — change these credentials!
+        // ══════════════════════════════════════════
+        const ADMIN_USERNAME = 'desire_admin';   // ← change this
+        const ADMIN_PASSWORD = 'Desire@2024';    // ← change this
+        const SESSION_DURATION = 30 * 60;        // 30 minutes in seconds
+        const MAX_ATTEMPTS = 5;
+        const LOCKOUT_SECONDS = 30;
+
+        // ── Auth State ──
+        let failedAttempts  = parseInt(sessionStorage.getItem('adminAttempts') || '0');
+        let lockedUntil     = parseInt(sessionStorage.getItem('adminLockedUntil') || '0');
+        let sessionExpiry   = parseInt(sessionStorage.getItem('adminSessionExpiry') || '0');
+        let sessionInterval = null;
+        let lockoutInterval = null;
+
+        // ── Toast ──
+        function showToast(msg, isError = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast show' + (isError ? ' error' : '');
+            clearTimeout(t._timeout);
+            t._timeout = setTimeout(() => t.classList.remove('show'), 2800);
+        }
+
+        // ── Check existing session ──
+        function checkSession() {
+            const now = Math.floor(Date.now() / 1000);
+            if (sessionExpiry && now < sessionExpiry) {
+                enterDashboard(false);
+                return true;
+            }
+            return false;
+        }
+
+        // ── Attempt dots ──
+        function updateDots() {
+            for (let i = 1; i <= MAX_ATTEMPTS; i++) {
+                const dot = document.getElementById('d' + i);
+                if (!dot) continue;
+                dot.className = 'dot';
+                if (i <= failedAttempts) {
+                    dot.classList.add(failedAttempts >= MAX_ATTEMPTS - 1 ? 'used' : 'warn');
+                    if (failedAttempts >= MAX_ATTEMPTS - 1) dot.classList.add('used');
+                    else if (i < failedAttempts) dot.classList.add('used');
+                    else dot.classList.add('warn');
+                }
+            }
+            // simpler: fill used
+            for (let i = 1; i <= MAX_ATTEMPTS; i++) {
+                const dot = document.getElementById('d' + i);
+                if (!dot) continue;
+                dot.className = 'dot';
+                if (i <= failedAttempts) {
+                    dot.classList.add(failedAttempts >= MAX_ATTEMPTS ? 'used' : (i < failedAttempts ? 'used' : 'warn'));
+                }
+            }
+        }
+
+        // ── Lockout ──
+        function startLockout() {
+            const bar = document.getElementById('lockoutBar');
+            const btn = document.getElementById('loginBtn');
+            const userInput = document.getElementById('login-user');
+            const passInput = document.getElementById('login-pass');
+            bar.classList.add('show');
+            btn.disabled = true;
+            userInput.disabled = true;
+            passInput.disabled = true;
+
+            let remaining = Math.max(0, lockedUntil - Math.floor(Date.now() / 1000));
+            document.getElementById('lockoutTimer').textContent = remaining;
+
+            clearInterval(lockoutInterval);
+            lockoutInterval = setInterval(() => {
+                remaining = Math.max(0, lockedUntil - Math.floor(Date.now() / 1000));
+                document.getElementById('lockoutTimer').textContent = remaining;
+                if (remaining <= 0) {
+                    clearInterval(lockoutInterval);
+                    bar.classList.remove('show');
+                    btn.disabled = false;
+                    userInput.disabled = false;
+                    passInput.disabled = false;
+                    failedAttempts = 0;
+                    sessionStorage.setItem('adminAttempts', '0');
+                    document.getElementById('loginError').textContent = '';
+                    updateDots();
+                }
+            }, 1000);
+        }
+
+        // ── Login Logic ──
+        function attemptLogin() {
+            const now = Math.floor(Date.now() / 1000);
+
+            // Still locked out?
+            if (lockedUntil && now < lockedUntil) {
+                startLockout();
+                return;
+            }
+
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value;
+            const errorEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            if (!user || !pass) {
+                errorEl.textContent = '⚠ Please enter username and password.';
+                return;
+            }
+
+            // Loading animation
+            btn.classList.add('loading');
+            btn.textContent = 'Verifying...';
+
+            setTimeout(() => {
+                btn.classList.remove('loading');
+                btn.textContent = 'Sign In to Dashboard';
+
+                if (user === ADMIN_USERNAME && pass === ADMIN_PASSWORD) {
+                    // SUCCESS
+                    failedAttempts = 0;
+                    sessionStorage.setItem('adminAttempts', '0');
+                    sessionStorage.removeItem('adminLockedUntil');
+
+                    const expiry = now + SESSION_DURATION;
+                    sessionStorage.setItem('adminSessionExpiry', String(expiry));
+                    sessionExpiry = expiry;
+
+                    errorEl.textContent = '';
+                    updateDots();
+                    enterDashboard(true);
+                } else {
+                    // FAILURE
+                    failedAttempts++;
+                    sessionStorage.setItem('adminAttempts', String(failedAttempts));
+                    updateDots();
+
+                    const [uEl, pEl] = [document.getElementById('login-user'), document.getElementById('login-pass')];
+                    uEl.classList.add('error');
+                    pEl.classList.add('error');
+                    setTimeout(() => { uEl.classList.remove('error'); pEl.classList.remove('error'); }, 600);
+                    pEl.value = '';
+
+                    const remaining = MAX_ATTEMPTS - failedAttempts;
+                    if (failedAttempts >= MAX_ATTEMPTS) {
+                        lockedUntil = now + LOCKOUT_SECONDS;
+                        sessionStorage.setItem('adminLockedUntil', String(lockedUntil));
+                        errorEl.textContent = `⛔ Account locked for ${LOCKOUT_SECONDS} seconds.`;
+                        startLockout();
+                    } else {
+                        errorEl.textContent = `✗ Invalid credentials. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`;
+                    }
+                }
+            }, 600);
+        }
+
+        // ── Enter Dashboard ──
+        function enterDashboard(animate) {
+            const loginScreen = document.getElementById('login-screen');
+            const dashboard   = document.getElementById('dashboard');
+
+            if (animate) {
+                loginScreen.classList.add('hide');
+                setTimeout(() => {
+                    loginScreen.style.display = 'none';
+                    dashboard.classList.add('show');
+                    startSessionTimer();
+                    renderDashboard();
+                    showToast('Welcome back, Admin 👋');
+                }, 600);
+            } else {
+                loginScreen.style.display = 'none';
+                dashboard.classList.add('show');
+                startSessionTimer();
+                renderDashboard();
+            }
+        }
+
+        // ── Session Timer ──
+        function startSessionTimer() {
+            clearInterval(sessionInterval);
+            sessionInterval = setInterval(() => {
+                const now = Math.floor(Date.now() / 1000);
+                const remaining = Math.max(0, sessionExpiry - now);
+                if (remaining <= 0) {
+                    clearInterval(sessionInterval);
+                    sessionStorage.removeItem('adminSessionExpiry');
+                    logout(true);
+                    return;
+                }
+                const mins = String(Math.floor(remaining / 60)).padStart(2,'0');
+                const secs = String(remaining % 60).padStart(2,'0');
+                document.getElementById('sessionTimerDisplay').textContent = `Session: ${mins}:${secs}`;
+
+                // Warn at 2 mins remaining
+                if (remaining === 120) showToast('⚠ Session expires in 2 minutes', true);
+            }, 1000);
+        }
+
+        // ── Logout ──
+        function logout(expired = false) {
+            clearInterval(sessionInterval);
+            sessionStorage.removeItem('adminSessionExpiry');
+            sessionExpiry = 0;
+
+            const loginScreen = document.getElementById('login-screen');
+            const dashboard   = document.getElementById('dashboard');
+            dashboard.classList.remove('show');
+            loginScreen.style.display = '';
+            loginScreen.classList.remove('hide');
+
+            document.getElementById('login-user').value = '';
+            document.getElementById('login-pass').value = '';
+            document.getElementById('loginError').textContent = expired
+                ? '⏱ Session expired. Please sign in again.' : '';
+            failedAttempts = 0;
+            sessionStorage.setItem('adminAttempts', '0');
+            updateDots();
+        }
+
+        // ── Eye Toggle ──
+        document.getElementById('eyeToggle').addEventListener('click', () => {
+            const inp = document.getElementById('login-pass');
+            inp.type = inp.type === 'password' ? 'text' : 'password';
+        });
+
+        // ── Login button & Enter key ──
+        document.getElementById('loginBtn').addEventListener('click', attemptLogin);
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+                attemptLogin();
+            }
+        });
+
+        // ── Logout button ──
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            if (confirm('Sign out of admin dashboard?')) logout();
+        });
+
+        // ════════════════════════════════════════
+        //  DASHBOARD LOGIC
+        // ════════════════════════════════════════
+        const defaultInventory = {
+            cashew: {name:'Cashew Crunch', price:99,  stock:10},
+            oreo:   {name:'Oreo Crunch',   price:119, stock:10},
+            dark:   {name:'Dark Delight',  price:129, stock:10}
+        };
+
+        let adminLastOrderCount = 0;
+
+        async function loadInventory() {
+            try { const r = await fetch('/api/inventory'); return r.ok ? r.json() : defaultInventory; }
+            catch { return defaultInventory; }
+        }
+        async function saveInventory(inv) {
+            try { await fetch('/api/inventory', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(inv)}); }
+            catch {}
+        }
+        async function loadOrders() {
+            try { const r = await fetch('/api/orders'); return r.ok ? r.json() : []; }
+            catch { return []; }
+        }
+
+        function stockStatus(s) {
+            if (s === 0) return ['OUT OF STOCK','stock-out'];
+            if (s <= 3)  return ['LOW STOCK','stock-low'];
+            return ['IN STOCK','stock-ok'];
+        }
+
+        async function renderDashboard() {
+            const [inv, orders] = await Promise.all([loadInventory(), loadOrders()]);
+            if (orders.length > adminLastOrderCount && adminLastOrderCount > 0) {
+                const newest = [...orders].sort((a,b) => (new Date(b.date) - new Date(a.date)))[0];
+                showToast(`📣 New order received: #${String(newest.id).padStart(4,'0')} (${newest.customer?.name || 'Guest'})`);
+            }
+            adminLastOrderCount = orders.length;
+
+            // Stats
+            const totalStock   = Object.values(inv).reduce((s,i) => s + i.stock, 0);
+            const totalRevenue = orders.reduce((s,o) => s + (o.total || 0), 0);
+            document.getElementById('statFlavours').textContent = Object.keys(inv).length;
+            document.getElementById('statStock').textContent    = totalStock;
+            document.getElementById('statOrders').textContent   = orders.length;
+            document.getElementById('statRevenue').textContent  = '₹' + totalRevenue.toLocaleString('en-IN');
+
+            // Inventory table
+            const tbody = document.getElementById('inv-tbody');
+            tbody.innerHTML = '';
+            Object.keys(inv).forEach(sku => {
+                const item = inv[sku];
+                const [statusLabel, statusClass] = stockStatus(item.stock);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><span class="sku-badge">${sku}</span></td>
+                    <td><span class="flavor-name">${item.name}</span></td>
+                    <td><span class="price-val">₹${item.price}</span></td>
+                    <td><input class="stock-input" type="number" min="0" value="${item.stock}" data-sku="${sku}"></td>
+                    <td><span class="${statusClass}" style="font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.15em;">${statusLabel}</span></td>
+                    <td><button class="btn-update" data-sku="${sku}">Update</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Orders
+            const ordersList = document.getElementById('orders-list');
+            if (!orders.length) {
+                ordersList.innerHTML = '<div class="no-orders">No orders yet</div>';
+            } else {
+                ordersList.innerHTML = '';
+                [...orders].reverse().slice(0,20).forEach(order => {
+                    const div = document.createElement('div');
+                    div.className = 'order-row';
+                    const items = order.items || [];
+                    const d = order.date ? new Date(order.date).toLocaleString('en-IN') : '';
+
+                    const method = order.payment?.method || '';
+                    let tagClass = 'other', tagLabel = 'Unknown';
+                    if (method === 'razorpay') { tagClass='razorpay'; tagLabel='💳 Razorpay'; }
+                    else if (method.includes('upi')) { tagClass='upi'; tagLabel='📱 UPI'; }
+
+                    const itemRows = items.map(i => `<tr><td>${i.name}</td><td>x${i.qty}</td><td>₹${i.price}</td><td>₹${(i.qty||0)* (i.price||0)}</td></tr>`).join('');
+
+                    div.innerHTML = `
+                        <div>
+                            <div class="order-id">#${String(order.id).padStart(4,'0')}</div>
+                            <div class="order-date">${d}</div>
+                            <div class="order-details">
+                                <div><strong>Customer:</strong> ${order.customer?.name || 'Unknown'}</div>
+                                <div><strong>Email:</strong> ${order.customer?.email || '—'}</div>
+                                <div><strong>Phone:</strong> ${order.customer?.phone || '—'}</div>
+                                <div><strong>Address:</strong> ${order.customer?.address || '—'}, ${order.customer?.city || '—'}, ${order.customer?.state || '—'} ${order.customer?.zip || ''}</div>
+                                <div><strong>Payment Ref:</strong> ${order.payment?.transaction_ref || order.payment?.id || '—'}</div>
+                                <div><strong>Items:</strong></div>
+                                <table class="order-items-table">
+                                  <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
+                                  <tbody>${itemRows || '<tr><td colspan="4" style="opacity:0.7;">No items recorded</td></tr>'}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <span class="payment-tag ${tagClass}">${tagLabel}</span>
+                        <div class="order-total-badge">₹${order.total || 0}</div>
+                    `;
+                    ordersList.appendChild(div);
+                });
+            }
+        }
+
+        // Inventory update
+        document.getElementById('inv-tbody').addEventListener('click', async e => {
+            if (e.target.matches('.btn-update')) {
+                const sku   = e.target.getAttribute('data-sku');
+                const input = document.querySelector(`input[data-sku="${sku}"]`);
+                const inv   = await loadInventory();
+                inv[sku].stock = parseInt(input.value, 10);
+                await saveInventory(inv);
+                showToast('Stock updated · ' + inv[sku].name);
+                renderDashboard();
+            }
+        });
+
+        document.getElementById('reset-inventory').addEventListener('click', async () => {
+            if (confirm('Reset all stock to defaults?')) {
+                await saveInventory(defaultInventory);
+                showToast('Inventory reset to defaults');
+                renderDashboard();
+            }
+        });
+
+        document.getElementById('reset-orders').addEventListener('click', async () => {
+            if (!confirm('Clear all orders from system? This cannot be undone.')) return;
+            try {
+                const r = await fetch('/api/orders/reset', { method: 'POST' });
+                if (r.ok) {
+                    showToast('All orders have been cleared');
+                    renderDashboard();
+                } else {
+                    showToast('Could not reset orders', true);
+                }
+            } catch (err) {
+                showToast('Network error while resetting orders', true);
+            }
+        });
+
+        // ── Init ──
+        updateDots();
+        if (!checkSession()) {
+            // Check if still locked out
+            const now = Math.floor(Date.now() / 1000);
+            if (lockedUntil && now < lockedUntil) startLockout();
+        }
+
+        // Poll orders every 12 seconds while admin is active
+        setInterval(() => {
+            if (document.getElementById('dashboard').classList.contains('show')) {
+                renderDashboard();
+            }
+        }, 12000);
+    </script>
+</body>
+</html>

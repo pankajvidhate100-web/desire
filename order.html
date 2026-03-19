@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout — Desire.co</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --cocoa: #1a0a04; --espresso: #2d1208;
+            --truffle: #5c2e10; --caramel: #c8892a;
+            --gold: #e8b84b; --cream: #f9f2e7; --white: #fffdf9;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--cocoa); color: var(--cream);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            min-height: 100vh; cursor: none;
+        }
+        body::before {
+            content: ''; position: fixed; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none; z-index: 999; opacity: 0.4;
+        }
+        .cursor { width:12px;height:12px;background:var(--gold);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:10001;mix-blend-mode:difference;transition:transform 0.15s ease; }
+        .cursor-ring { width:40px;height:40px;border:1px solid var(--gold);border-radius:50%;position:fixed;top:0;left:0;pointer-events:none;z-index:10000;opacity:0.5;transition:all 0.3s ease; }
+
+        header { padding:1.5rem 3rem; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(200,137,42,0.15); }
+        .logo { font-family:'Playfair Display',serif; font-size:1.6rem; color:var(--gold); text-decoration:none; }
+        .logo span { font-style:italic; }
+        nav a { font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.2em; text-transform:uppercase; color:rgba(249,242,231,0.6); text-decoration:none; transition:color 0.3s; }
+        nav a:hover { color:var(--gold); }
+
+        .page-hero { padding:4rem 3rem 2rem; border-bottom:1px solid rgba(200,137,42,0.1); position:relative; }
+        .page-hero::after { content:'CHECKOUT'; position:absolute; right:3rem; top:50%; transform:translateY(-50%); font-family:'Playfair Display',serif; font-size:clamp(4rem,10vw,8rem); font-weight:700; color:rgba(200,137,42,0.04); letter-spacing:-0.03em; pointer-events:none; }
+        .eyebrow { font-family:'DM Mono',monospace; font-size:0.7rem; letter-spacing:0.35em; text-transform:uppercase; color:var(--gold); margin-bottom:0.8rem; display:flex; align-items:center; gap:1rem; }
+        .eyebrow::before { content:''; width:40px; height:1px; background:var(--gold); }
+        .page-hero h1 { font-family:'Playfair Display',serif; font-size:clamp(2rem,4vw,3.5rem); font-weight:400; }
+        .page-hero h1 em { font-style:italic; color:var(--gold); }
+
+        .checkout-layout { display:grid; grid-template-columns:1fr 400px; min-height:calc(100vh - 200px); }
+
+        /* FORM */
+        .form-section { padding:3rem; border-right:1px solid rgba(200,137,42,0.15); }
+        .form-group-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.3em; text-transform:uppercase; color:var(--gold); margin-bottom:1.5rem; display:flex; align-items:center; gap:1rem; }
+        .form-group-label::after { content:''; flex:1; height:1px; background:rgba(200,137,42,0.2); }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+        .form-row.single { grid-template-columns:1fr; }
+        .field { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.3rem; }
+        .field label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; color:rgba(249,242,231,0.45); }
+        .field input, .field textarea { background:rgba(255,255,255,0.04); border:1px solid rgba(200,137,42,0.2); color:var(--cream); padding:0.85rem 1rem; font-family:'Cormorant Garamond',serif; font-size:1.05rem; font-weight:300; outline:none; transition:border-color 0.3s,background 0.3s; width:100%; }
+        .field input:focus, .field textarea:focus { border-color:var(--gold); background:rgba(200,137,42,0.05); }
+        .field input::placeholder, .field textarea::placeholder { color:rgba(249,242,231,0.2); }
+        .field textarea { height:90px; resize:vertical; }
+        .section-gap { margin-bottom:2.5rem; }
+
+        /* PAYMENT METHOD SELECTOR */
+        .payment-methods { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:rgba(200,137,42,0.15); margin-bottom:0; border:1px solid rgba(200,137,42,0.15); }
+        .pay-method { background:var(--espresso); padding:1.2rem 1rem; cursor:none; display:flex; flex-direction:column; align-items:center; gap:0.4rem; text-align:center; border:2px solid transparent; transition:all 0.3s ease; position:relative; }
+        .pay-method:hover { background:rgba(200,137,42,0.06); }
+        .pay-method.active { border-color:var(--gold); background:rgba(200,137,42,0.1); }
+        .pay-method.active::after { content:'✓'; position:absolute; top:0.5rem; right:0.7rem; font-size:0.65rem; color:var(--gold); font-family:'DM Mono',monospace; }
+        .pay-method-icon { font-size:1.6rem; }
+        .pay-method-title { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--cream); }
+        .pay-method-sub { font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.08em; color:rgba(249,242,231,0.35); }
+        .pay-method.active .pay-method-title { color:var(--gold); }
+
+        /* SUMMARY */
+        .summary-section { padding:3rem 2rem; background:var(--espresso); position:sticky; top:0; height:fit-content; }
+        .summary-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:400; margin-bottom:2rem; padding-bottom:1rem; border-bottom:1px solid rgba(200,137,42,0.2); }
+        .order-item { display:flex; justify-content:space-between; align-items:flex-start; padding:0.9rem 0; border-bottom:1px solid rgba(200,137,42,0.08); }
+        .order-item-name { font-family:'Playfair Display',serif; font-size:1rem; }
+        .order-item-qty { font-family:'DM Mono',monospace; font-size:0.65rem; color:rgba(249,242,231,0.45); margin-top:0.2rem; }
+        .order-item-price { font-family:'DM Mono',monospace; font-size:0.85rem; color:var(--gold); white-space:nowrap; }
+        .empty-cart-msg { font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.15em; text-transform:uppercase; color:rgba(249,242,231,0.3); text-align:center; padding:2rem; }
+        .summary-total { margin-top:2rem; padding-top:1.5rem; border-top:1px solid rgba(200,137,42,0.3); margin-bottom:2rem; }
+        .total-row { display:flex; justify-content:space-between; align-items:baseline; }
+        .total-label { font-family:'DM Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; color:rgba(249,242,231,0.5); }
+        .total-amount { font-family:'Playfair Display',serif; font-size:2.2rem; color:var(--gold); }
+
+        .pay-panel { display:none; }
+        .pay-panel.active { display:block; }
+
+        /* Razorpay btn */
+        .pay-btn { width:100%; background:var(--gold); color:var(--cocoa); border:none; padding:1.1rem; font-family:'DM Mono',monospace; font-size:0.8rem; letter-spacing:0.2em; text-transform:uppercase; cursor:none; position:relative; overflow:hidden; transition:background 0.3s; }
+        .pay-btn::after { content:''; position:absolute; inset:0; background:rgba(255,255,255,0.2); transform:translateX(-100%); transition:transform 0.4s ease; }
+        .pay-btn:hover::after { transform:translateX(0); }
+
+        /* UPI panel */
+        .upi-panel { display:flex; flex-direction:column; align-items:center; gap:1.1rem; }
+        .upi-amount-badge { font-family:'Playfair Display',serif; font-size:1.3rem; color:var(--gold); text-align:center; }
+        .qr-wrap { background:#fff; padding:12px; border-radius:4px; display:inline-flex; box-shadow:0 0 0 1px rgba(200,137,42,0.3),0 8px 32px rgba(0,0,0,0.5); }
+        .upi-apps { display:flex; gap:0.6rem; flex-wrap:wrap; justify-content:center; }
+        .upi-app-badge { font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.08em; color:rgba(249,242,231,0.5); border:1px solid rgba(249,242,231,0.1); padding:0.3rem 0.65rem; }
+        .upi-id-box { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.08em; color:var(--gold); background:rgba(200,137,42,0.08); border:1px solid rgba(200,137,42,0.25); padding:0.7rem 1rem; width:100%; text-align:center; word-break:break-all; }
+        .upi-steps { width:100%; }
+        .upi-step { display:flex; align-items:flex-start; gap:0.8rem; padding:0.55rem 0; border-bottom:1px solid rgba(200,137,42,0.08); }
+        .upi-step:last-child { border-bottom:none; }
+        .step-num { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--gold); background:rgba(200,137,42,0.12); width:20px; height:20px; min-width:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-top:0.1rem; }
+        .step-text { font-family:'DM Mono',monospace; font-size:0.62rem; letter-spacing:0.05em; color:rgba(249,242,231,0.55); line-height:1.5; }
+        .step-text strong { color:var(--cream); }
+        .confirm-upi-btn { width:100%; background:transparent; border:1px solid var(--gold); color:var(--gold); padding:1rem; font-family:'DM Mono',monospace; font-size:0.75rem; letter-spacing:0.2em; text-transform:uppercase; cursor:none; transition:all 0.3s; position:relative; overflow:hidden; }
+        .confirm-upi-btn::before { content:''; position:absolute; inset:0; background:var(--gold); transform:translateY(100%); transition:transform 0.35s ease; }
+        .confirm-upi-btn span { position:relative; z-index:1; transition:color 0.35s; }
+        .confirm-upi-btn:hover::before { transform:translateY(0); }
+        .confirm-upi-btn:hover span { color:var(--cocoa); }
+        .secure-note { display:flex; align-items:center; gap:0.5rem; justify-content:center; margin-top:0.8rem; font-family:'DM Mono',monospace; font-size:0.58rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(249,242,231,0.25); text-align:center; }
+
+        /* Success overlay */
+        .success-overlay { position:fixed; inset:0; background:rgba(10,4,2,0.92); z-index:9999; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity 0.5s ease; backdrop-filter:blur(8px); }
+        .success-overlay.show { opacity:1; pointer-events:all; }
+        .success-card { background:var(--espresso); border:1px solid rgba(200,137,42,0.3); padding:3rem; text-align:center; max-width:420px; animation:scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+        @keyframes scaleIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+        .success-icon { font-size:3rem; margin-bottom:1rem; }
+        .success-title { font-family:'Playfair Display',serif; font-size:2rem; font-weight:400; color:var(--gold); margin-bottom:0.5rem; }
+        .success-msg { font-family:'DM Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; color:rgba(249,242,231,0.5); line-height:1.8; margin-bottom:2rem; }
+        .success-btn { background:var(--gold); color:var(--cocoa); border:none; padding:0.9rem 2rem; font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.2em; text-transform:uppercase; cursor:none; transition:background 0.3s; }
+        .success-btn:hover { background:#d4a438; }
+
+        @media(max-width:768px) {
+            header { padding:1.2rem 1.5rem; }
+            .page-hero { padding:3rem 1.5rem 2rem; }
+            .checkout-layout { grid-template-columns:1fr; }
+            .form-section { padding:2rem 1.5rem; border-right:none; border-bottom:1px solid rgba(200,137,42,0.15); }
+            .summary-section { padding:2rem 1.5rem; }
+            .form-row { grid-template-columns:1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor" id="cursor"></div>
+    <div class="cursor-ring" id="cursorRing"></div>
+
+    <header>
+        <a href="index.html" class="logo"><span>Desire</span>.co</a>
+        <nav><a href="index.html">← Back to Shop</a></nav>
+    </header>
+
+    <div class="page-hero">
+        <p class="eyebrow">Step 2 of 2</p>
+        <h1>Complete your <em>order</em></h1>
+    </div>
+
+    <div class="checkout-layout">
+        <!-- FORM -->
+        <div class="form-section">
+            <form id="order-form">
+                <div class="section-gap">
+                    <div class="form-group-label">Contact Information</div>
+                    <div class="form-row">
+                        <div class="field">
+                            <label>Full Name</label>
+                            <input type="text" name="name" placeholder="Your full name" required>
+                        </div>
+                        <div class="field">
+                            <label>Phone Number</label>
+                            <input type="tel" name="phone" placeholder="+91 00000 00000" required>
+                        </div>
+                    </div>
+                    <div class="form-row single">
+                        <div class="field">
+                            <label>Email Address</label>
+                            <input type="email" name="email" placeholder="you@example.com" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-gap">
+                    <div class="form-group-label">Shipping Address</div>
+                    <div class="form-row single">
+                        <div class="field">
+                            <label>Street Address</label>
+                            <textarea name="address" placeholder="Building, street, locality..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="field">
+                            <label>City</label>
+                            <input type="text" name="city" placeholder="City" required>
+                        </div>
+                        <div class="field">
+                            <label>State</label>
+                            <input type="text" name="state" placeholder="State" required>
+                        </div>
+                    </div>
+                    <div class="form-row single">
+                        <div class="field">
+                            <label>Postal Code</label>
+                            <input type="text" name="zip" placeholder="000 000" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAYMENT METHOD PICKER -->
+                <div class="form-group-label">Choose Payment Method</div>
+                <div class="payment-methods">
+                    <div class="pay-method active" data-method="razorpay">
+                        <div class="pay-method-icon">💳</div>
+                        <div class="pay-method-title">Razorpay</div>
+                        <div class="pay-method-sub">Cards · Net Banking · Wallets · UPI</div>
+                    </div>
+                    <div class="pay-method" data-method="upi">
+                        <div class="pay-method-icon">📱</div>
+                        <div class="pay-method-title">Direct UPI</div>
+                        <div class="pay-method-sub">GPay · PhonePe · Paytm · BHIM · Zero Fees</div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- SUMMARY + PAY -->
+        <div class="summary-section">
+            <div class="summary-title">Order Summary</div>
+            <div id="order-items">
+                <div class="empty-cart-msg">No items in cart</div>
+            </div>
+            <div class="summary-total">
+                <div class="total-row">
+                    <span class="total-label">Total</span>
+                    <span class="total-amount">₹<span id="order-total">0</span></span>
+                </div>
+            </div>
+
+            <!-- RAZORPAY PANEL -->
+            <div class="pay-panel active" id="panel-razorpay">
+                <button class="pay-btn" id="pay-button" type="button">Pay with Razorpay</button>
+                <div class="secure-note">🔒 Secured by Razorpay · Cards · UPI · Wallets</div>
+            </div>
+
+            <!-- UPI PANEL -->
+            <div class="pay-panel" id="panel-upi">
+                <div class="upi-panel">
+                    <div class="upi-amount-badge">Scan &amp; Pay ₹<span id="upi-total-display">0</span></div>
+                    <div class="qr-wrap">
+                        <div id="qr-code"></div>
+                    </div>
+                    <div class="upi-apps">
+                        <span class="upi-app-badge">📱 Google Pay</span>
+                        <span class="upi-app-badge">📲 PhonePe</span>
+                        <span class="upi-app-badge">💰 Paytm</span>
+                        <span class="upi-app-badge">🏦 BHIM</span>
+                    </div>
+                    <div class="upi-id-box">
+                        UPI ID &nbsp;·&nbsp; <strong style="color:var(--cream);">pankajvidhate100@okhdfcbank</strong>
+                    </div>
+                    <div class="upi-steps">
+                        <div class="upi-step">
+                            <div class="step-num">1</div>
+                            <div class="step-text">Open <strong>Google Pay, PhonePe, Paytm</strong> or any UPI app</div>
+                        </div>
+                        <div class="upi-step">
+                            <div class="step-num">2</div>
+                            <div class="step-text">Scan the QR code above <strong>or send to UPI ID manually</strong></div>
+                        </div>
+                        <div class="upi-step">
+                            <div class="step-num">3</div>
+                            <div class="step-text">Pay exactly <strong>₹<span id="upi-total-step">0</span></strong> — note your transaction ID</div>
+                        </div>
+                        <div class="upi-step">
+                            <div class="step-num">4</div>
+                            <div class="step-text">Click <strong>"I've Paid"</strong> below and enter the transaction ID to confirm</div>
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:0.8rem;">
+                        <label style="font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(249,242,231,0.5);">UPI Transaction ID</label>
+                        <input id="upi-txn-id" type="text" placeholder="Enter UPI Txn ID" style="background:rgba(255,255,255,0.05);border:1px solid rgba(200,137,42,0.2);color:#fff;padding:0.6rem 0.8rem;font-family:'DM Mono',monospace;font-size:0.75rem;width:100%;outline:none;" required>
+                    </div>
+                    <button class="confirm-upi-btn" id="confirm-upi-btn" type="button">
+                        <span>✓ &nbsp;I've Paid — Confirm Order</span>
+                    </button>
+                    <div class="secure-note">💡 Zero fees · Money goes directly to Desire.co</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS OVERLAY -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-card">
+            <div class="success-icon">🍫</div>
+            <div class="success-title">Order Placed!</div>
+            <div class="success-msg" id="successMsg">Thank you! We've received your order.</div>
+            <button class="success-btn" onclick="window.location.href='index.html'">Back to Shop →</button>
+        </div>
+    </div>
+
+    <script>
+        // ── Cursor ──
+        const cursor = document.getElementById('cursor');
+        const ring = document.getElementById('cursorRing');
+        document.addEventListener('mousemove', e => {
+            cursor.style.left = e.clientX - 6 + 'px';
+            cursor.style.top  = e.clientY - 6 + 'px';
+            ring.style.left   = e.clientX - 20 + 'px';
+            ring.style.top    = e.clientY - 20 + 'px';
+        });
+        document.querySelectorAll('a,button,.pay-method').forEach(el => {
+            el.addEventListener('mouseenter', () => { cursor.style.transform='scale(2)'; ring.style.transform='scale(1.4)'; });
+            el.addEventListener('mouseleave', () => { cursor.style.transform=''; ring.style.transform=''; });
+        });
+
+        // ── Constants ──
+        const UPI_ID   = 'pankajvidhate100@okhdfcbank';
+        const UPI_NAME = 'Desire.co';
+
+        // ── Load Cart ──
+        const currentCart = JSON.parse(localStorage.getItem('desire_cart') || '[]');
+        let total = 0;
+        const orderItemsDiv  = document.getElementById('order-items');
+
+        if (currentCart.length) {
+            orderItemsDiv.innerHTML = '';
+            currentCart.forEach(item => {
+                total += item.price * item.qty;
+                const div = document.createElement('div');
+                div.className = 'order-item';
+                div.innerHTML = `
+                    <div>
+                        <div class="order-item-name">${item.name}</div>
+                        <div class="order-item-qty">Qty: ${item.qty}</div>
+                    </div>
+                    <div class="order-item-price">₹${item.price * item.qty}</div>
+                `;
+                orderItemsDiv.appendChild(div);
+            });
+        }
+        document.getElementById('order-total').textContent = total;
+        document.getElementById('upi-total-display').textContent = total;
+        document.getElementById('upi-total-step').textContent = total;
+
+        // ── Generate UPI QR Code ──
+        // UPI deep link — works with Google Pay, PhonePe, Paytm, BHIM
+        const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${total}&cu=INR&tn=${encodeURIComponent('Desire.co Chocolate Order')}`;
+        new QRCode(document.getElementById('qr-code'), {
+            text: upiLink,
+            width: 176,
+            height: 176,
+            colorDark: '#1a0a04',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+
+        // ── Payment Method Toggle ──
+        document.querySelectorAll('.pay-method').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.pay-method').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const method = btn.getAttribute('data-method');
+                document.querySelectorAll('.pay-panel').forEach(p => p.classList.remove('active'));
+                document.getElementById('panel-' + method).classList.add('active');
+            });
+        });
+
+        // ── Validation ──
+        function validateForm() {
+            const form = document.getElementById('order-form');
+            if (!form.checkValidity()) { form.reportValidity(); return false; }
+            if (!currentCart.length) { alert('Your cart is empty. Please add items first.'); return false; }
+            return true;
+        }
+
+        // ── Save Order to Backend ──
+        async function saveOrder(paymentInfo) {
+            const form = document.getElementById('order-form');
+            const order = {
+                customer: {
+                    name: form.name.value, email: form.email.value,
+                    phone: form.phone.value, address: form.address.value,
+                    city: form.city.value, state: form.state.value, zip: form.zip.value
+                },
+                items: currentCart, total, payment: paymentInfo
+            };
+            try {
+                await fetch('/api/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(order) });
+                const invResp = await fetch('/api/inventory');
+                if (invResp.ok) {
+                    const inv = await invResp.json();
+                    currentCart.forEach(it => { if (inv[it.sku]) inv[it.sku].stock = Math.max(0, inv[it.sku].stock - it.qty); });
+                    await fetch('/api/inventory', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(inv) });
+                }
+            } catch(e) {}
+            localStorage.removeItem('desire_cart');
+        }
+
+        function showSuccess(msg) {
+            document.getElementById('successMsg').innerHTML = msg;
+            document.getElementById('successOverlay').classList.add('show');
+        }
+
+        // ── Razorpay ──
+        document.getElementById('pay-button').addEventListener('click', () => {
+            if (!validateForm()) return;
+            const form = document.getElementById('order-form');
+            const options = {
+                key: 'rzp_test_YourKeyHere', // 🔑 Replace with your live Razorpay key
+                amount: total * 100,
+                currency: 'INR',
+                name: 'Desire.co',
+                description: 'Artisan Chocolate Order',
+                handler: async function(response) {
+                    await saveOrder({ method:'razorpay', id:response.razorpay_payment_id });
+                    showSuccess(`Your chocolates are on their way! 🍫<br><br>
+                        <span style="opacity:0.5;">Razorpay ID: ${response.razorpay_payment_id}</span>`);
+                },
+                prefill: { name:form.name.value, email:form.email.value, contact:form.phone.value },
+                theme: { color:'#c8892a' }
+            };
+            new Razorpay(options).open();
+        });
+
+        // ── UPI Confirm ──
+        document.getElementById('confirm-upi-btn').addEventListener('click', async () => {
+            if (!validateForm()) return;
+            const txnInput = document.getElementById('upi-txn-id');
+            const txn = txnInput.value.trim();
+            if (!txn) {
+                alert('Transaction ID is required to confirm your order.');
+                txnInput.focus();
+                return;
+            }
+            await saveOrder({ method:'upi_direct', upi_id:UPI_ID, transaction_ref:txn });
+            showSuccess(`Order confirmed! Thank you for paying via UPI. 🍫<br><br>
+                <span style="opacity:0.5;">UPI Ref: ${txn}<br>Paid to: ${UPI_ID}</span>`);
+        });
+    </script>
+</body>
+</html>
